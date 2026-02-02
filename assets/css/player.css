@@ -185,7 +185,16 @@ input[type=range]::-webkit-slider-thumb { height: 18px; width: 18px; border-radi
 #homePage:hover { background: #f8f9fa; transform: translateY(-2px); }
 
 /* Helpers */
-.iframe360 { width: 100%; height: 100%; border: none; position: absolute; top: 0; left: 0; z-index: 5; }
+.iframe360 { 
+    width: 100%; 
+    /* Wir ziehen die 90px der Footer-Leiste ab */
+    height: calc(100% - 90px) !important; 
+    border: none; 
+    position: absolute; 
+    top: 0; 
+    left: 0; 
+    z-index: 5; 
+}
 .hide { display: none !important; }
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-thumb { background: #d0d0d0; border-radius: 3px; }
