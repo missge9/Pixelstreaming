@@ -70,6 +70,9 @@ body, html {
     margin: 0 !important;
     padding: 0 !important;
     z-index: 1;
+    
+    /* Ergänzung: Verhindert, dass der Browser eigene Offsets berechnet */
+    overflow: hidden !important;
 }
 
 /* 2. Das Video selbst */
@@ -79,16 +82,14 @@ body, html {
     width: 100% !important;
     height: 100% !important;
     
-    /* Zwingt das Video, den Container komplett auszufüllen.
-       Da CSS das Element zwingt, wird die Mausposition wieder korrekt sein,
-       weil Ecke Video = Ecke Mauszeiger. */
-    object-fit: fill !important; 
+    /* WICHTIG: 'fill' verzerrt das Bild und macht die Maus ungenau! 
+       'contain' behält das Seitenverhältnis bei. */
+    object-fit: contain !important; 
     
     position: absolute !important;
     top: 0 !important;
     left: 0 !important;
 }
-
 /* =========================================
    3. SIDEBARS (Unverändert)
    ========================================= */

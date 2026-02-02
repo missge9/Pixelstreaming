@@ -18,8 +18,8 @@ body {
   position: fixed;
   bottom: 100px;
   right: 0;
-  width: 300px; /* oder die gewÃ¼nschte Breite */
-  height: 200px; /* die gewÃ¼nschte HÃ¶he */
+  width: 300px; /* oder die gewünschte Breite */
+  height: 200px; /* die gewünschte Höhe */
   display: none;
   border-radius: 10px;
   z-index: 2000;
@@ -29,8 +29,8 @@ body {
   position: fixed;
   bottom: 100px;
   right: 0;
-  width: 300px; /* oder die gewÃ¼nschte Breite */
-  height: 200px; /* die gewÃ¼nschte HÃ¶he */
+  width: 300px; /* oder die gewünschte Breite */
+  height: 200px; /* die gewünschte Höhe */
   display: none;
   border-radius: 10px;
   z-index: 2000;
@@ -78,23 +78,23 @@ body {
 .popup-content::after {
   content: "";
   position: absolute;
-  bottom: -10px; /* Die HÃ¶he des Dreiecks */
+  bottom: -10px; /* Die Höhe des Dreiecks */
   left: 20px; /* Positionierung des Dreiecks von links */
   width: 0;
   height: 0;
-  border-left: 10px solid transparent; /* Die HÃ¤lfte der Basis des Dreiecks */
-  border-right: 10px solid transparent; /* Die andere HÃ¤lfte der Basis des Dreiecks */
-  border-top: 10px solid #ffffff; /* Die Farbe und HÃ¶he des Dreiecks. Hier ist es weiÃŸ, um mit dem Hintergrund des popup-content Ã¼bereinzustimmen */
+  border-left: 10px solid transparent; /* Die Hälfte der Basis des Dreiecks */
+  border-right: 10px solid transparent; /* Die andere Hälfte der Basis des Dreiecks */
+  border-top: 10px solid #ffffff; /* Die Farbe und Höhe des Dreiecks. Hier ist es weiss, um mit dem Hintergrund des popup-content übereinzustimmen */
 }
 
 .WarnText {
   position: absolute;  /* absolute Positionierung */
   left: 0;             /* am linken Rand */
   bottom: 0%;          /* startet in der Mitte des Viewports von oben */
-  padding: 7px;       /* optional: Innenabstand hinzufÃ¼gen */
-  background-color: rgba(255,0,0,0.2); /* optional: Hintergrundfarbe hinzufÃ¼gen */
-  border-right: 3px solid red; /* optional: rechten Rand hinzufÃ¼gen */
-  border-left: 3px solid red; /* optional: rechten Rand hinzufÃ¼gen */
+  padding: 7px;       /* optional: Innenabstand hinzufügen */
+  background-color: rgba(255,0,0,0.2); /* optional: Hintergrundfarbe hinzufügen */
+  border-right: 3px solid red; /* optional: rechten Rand hinzufügen */
+  border-left: 3px solid red; /* optional: rechten Rand hinzufügen */
   font-family: Arial, sans-serif;
   color: rgb(82, 82, 82);
   font-weight: bold; 
@@ -520,7 +520,7 @@ body {
   }
 /* } */
 
-/*æ‰‹æœºå±å¹•*/
+/* handybildschirm */
 /* @media screen  and (max-width: 552px) { */
   .mobile .bottom-button,
   .tablet .bottom-button,
@@ -568,7 +568,7 @@ body {
     
 }
 /* } */
-/* æ•ˆæžœ */
+/* effekt */
 
 svg {
   position: absolute;
@@ -934,118 +934,118 @@ svg {
 }
 
 
-/* æ ·å¼ */
+/* styles */
 
 .button {
-	--font-size: 15px;
-	--perspective: calc(var(--font-size) * 10);
-	--bg: #7C925C;
-	--duration: 800ms;
-	--ease: cubic-bezier(0.3, 1.4, 0.65, 1);
+  --font-size: 15px;
+  --perspective: calc(var(--font-size) * 10);
+  --bg: #7C925C;
+  --duration: 800ms;
+  --ease: cubic-bezier(0.3, 1.4, 0.65, 1);
 
-	cursor: pointer;
-	position: relative;
-	perspective: var(--perspective);
-	/* color: white; */
-	border: none;
-	outline: none;
-	background-color: transparent;
-	-webkit-tap-highlight-color: transparent;
+  cursor: pointer;
+  position: relative;
+  perspective: var(--perspective);
+  /* color: white; */
+  border: none;
+  outline: none;
+  background-color: transparent;
+  -webkit-tap-highlight-color: transparent;
   padding: 0;
 }
 
 
 .button:focus {
-	z-index: 1;
+  z-index: 1;
 }
 
 .button:focus-visible {
-	--size: 3px;
-	outline: var(--size) dashed var(--bg);
-	outline-offset: calc(var(--size) * 2);
+  --size: 3px;
+  outline: var(--size) dashed var(--bg);
+  outline-offset: calc(var(--size) * 2);
 }
 
 .button .wrapper {
-	position: relative;
-	display: grid;
-	transform: translateZ(calc(var(--font-size) * -1)) scale(1.001) rotateX(0)
-		rotateY(0) rotateZ(0);
-	transform-style: preserve-3d;
-	pointer-events: none;
+  position: relative;
+  display: grid;
+  transform: translateZ(calc(var(--font-size) * -1)) scale(1.001) rotateX(0)
+    rotateY(0) rotateZ(0);
+  transform-style: preserve-3d;
+  pointer-events: none;
 }
 
 .button .wrapper {
-	transition: transform var(--duration) var(--ease);
+  transition: transform var(--duration) var(--ease);
 }
 
 .button .wrapper > * {
-	grid-area: 1 / 1;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	transition: background-color var(--duration) var(--ease);
+  grid-area: 1 / 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color var(--duration) var(--ease);
 }
 
 .button .front,
 .button .back {
-	/* padding: 1rem 2rem; */
+  /* padding: 1rem 2rem; */
   padding: 8px 10px;
-	background-color: var(--bg);
+  background-color: var(--bg);
 }
 
 .button .wrapper :not(.front):not(.back) {
-	background-color: var(--bg-accent);
+  background-color: var(--bg-accent);
 }
 
 .button .top,
 .button .bottom {
-	width: 100%;
-	height: var(--font-size);
+  width: 100%;
+  height: var(--font-size);
 }
 
 .button .left,
 .button .right {
-	width: var(--font-size);
-	height: 100%;
+  width: var(--font-size);
+  height: 100%;
 }
 
 .button .front {
-	transform: translateZ(var(--font-size));
+  transform: translateZ(var(--font-size));
 }
 
 .button .back {
-	transform: scaleX(-1);
+  transform: scaleX(-1);
 }
 
 .button .top {
-	transform-origin: top center;
-	transform: rotateX(90deg);
+  transform-origin: top center;
+  transform: rotateX(90deg);
 }
 
 .button .bottom {
-	align-self: end;
-	transform-origin: bottom center;
-	transform: rotateX(-90deg);
+  align-self: end;
+  transform-origin: bottom center;
+  transform: rotateX(-90deg);
 }
 
 .button .right {
-	justify-self: end;
-	transform-origin: center right;
-	transform: rotateY(90deg);
+  justify-self: end;
+  transform-origin: center right;
+  transform: rotateY(90deg);
 }
 
 .button .left {
-	justify-self: start;
-	transform-origin: center left;
-	transform: rotateY(-90deg);
+  justify-self: start;
+  transform-origin: center left;
+  transform: rotateY(-90deg);
 }
 
 .button.clicked {
-	--bg: #7C925C;
-	--bg-accent: #7C925C;
+  --bg: #7C925C;
+  --bg-accent: #7C925C;
 }
 .button .back {
-	transform: scaleX(-1) rotate(0.5turn);
+  transform: scaleX(-1) rotate(0.5turn);
 }
 
 .button,
@@ -1058,7 +1058,7 @@ svg {
 
 
 .clicked .wrapper {
-	transform: translateZ(0) scale(1.001) rotateX(1.5turn) rotateY(0) rotateZ(0);
+  transform: translateZ(0) scale(1.001) rotateX(1.5turn) rotateY(0) rotateZ(0);
 }
 
 .cursorWait{
@@ -1258,8 +1258,8 @@ svg {
 #logoCh,
 #homePage {
     background-color: white;
-    /*width: 80px;     /* Breite von 10px */
-    /*height: 80px;    /* HÃ¶he von 10px */
+    /*width: 80px;      /* Breite von 10px */
+    /*height: 80px;     /* Höhe von 10px */
     /*margin-bottom: 10px; */
 }
 .toast-info{
@@ -1294,7 +1294,7 @@ svg {
 }
 
 #verkauft{
-	background-color: #eeeeee62;
+  background-color: #eeeeee62;
 }
 .verkauft-label {
     position: absolute;
@@ -1302,7 +1302,7 @@ svg {
     left: 30px; /* Justierung nach Bedarf */
     transform: rotate(-35deg); /* Diagonale Ausrichtung */
     color: #46431e57; /* Farbe des Textes */
-    font-size: 30px; /* Größe des Textes */
+    font-size: 30px; /* Grösse des Textes */
     font-weight: bold; /* Schriftstärke */
     /* Weitere Stilisierungen nach Bedarf */
 }
