@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<krpano>
+
+<!-- ************************ -->
+<!--         Messages         -->
+<!-- ************************ -->
+
+  <data name="en_project_title"><![CDATA[Oberrohrdorf]]></data>
+
+
+
+  <data name="en_pano669_title"><![CDATA[1 Angepasst]]></data>
+  <data name="en_spotpolygon724_tooltip"><![CDATA[Haus D]]></data>
+  <data name="en_spotpolygon725_tooltip"><![CDATA[Haus C]]></data>
+  <data name="en_spotpolygon726_tooltip"><![CDATA[Haus B]]></data>
+  <data name="en_spotpolygon727_tooltip"><![CDATA[Haus A]]></data>
+
+  <data name="en_panogroup721_title"><![CDATA[Haus A]]></data>
+
+  <data name="en_pano753_title"><![CDATA[A Wohnen]]></data>
+  <data name="en_spotpoint784_tooltip"><![CDATA[A Terrasse Süd]]></data>
+  <data name="en_spotpoint785_tooltip"><![CDATA[A Terrasse Nord]]></data>
+  <data name="en_pano755_title"><![CDATA[A Terrasse Süd]]></data>
+  <data name="en_spotpoint786_tooltip"><![CDATA[A Wohnen]]></data>
+  <data name="en_pano754_title"><![CDATA[A Terrasse Nord]]></data>
+  <data name="en_spotpoint787_tooltip"><![CDATA[A Wohnen]]></data>
+
+  <data name="en_panogroup743_title"><![CDATA[Haus B]]></data>
+
+  <data name="en_pano756_title"><![CDATA[B Wohnen]]></data>
+  <data name="en_spotpoint865_tooltip"><![CDATA[B Terrasse Nord]]></data>
+  <data name="en_spotpoint866_tooltip"><![CDATA[B Terrasse Süd]]></data>
+  <data name="en_pano757_title"><![CDATA[B Terrasse Süd]]></data>
+  <data name="en_spotpoint867_tooltip"><![CDATA[B Wohnen]]></data>
+  <data name="en_pano758_title"><![CDATA[B Terrasse Nord]]></data>
+  <data name="en_spotpoint824_tooltip"><![CDATA[B Wohnen]]></data>
+
+  <data name="en_panogroup746_title"><![CDATA[Wohnung C]]></data>
+
+  <data name="en_pano759_title"><![CDATA[C Wohnen]]></data>
+  <data name="en_spotpoint868_tooltip"><![CDATA[C Terrasse Nord]]></data>
+  <data name="en_spotpoint869_tooltip"><![CDATA[C Terrasse Süd]]></data>
+  <data name="en_pano761_title"><![CDATA[C Terrasse Süd]]></data>
+  <data name="en_spotpoint870_tooltip"><![CDATA[C Wohnen]]></data>
+  <data name="en_pano760_title"><![CDATA[C Terrasse Nord]]></data>
+  <data name="en_spotpoint827_tooltip"><![CDATA[C Wohnen]]></data>
+
+  <data name="en_panogroup749_title"><![CDATA[Wohnung D]]></data>
+
+  <data name="en_pano762_title"><![CDATA[D Wohnen]]></data>
+  <data name="en_spotpoint872_tooltip"><![CDATA[D Terrasse Süd]]></data>
+  <data name="en_spotpoint873_tooltip"><![CDATA[D Terrasse Nord]]></data>
+  <data name="en_pano764_title"><![CDATA[D Terrasse Süd]]></data>
+  <data name="en_spotpoint829_tooltip"><![CDATA[D Wohnen]]></data>
+  <data name="en_pano763_title"><![CDATA[D Terrasse Nord]]></data>
+  <data name="en_spotpoint832_tooltip"><![CDATA[D Wohnen]]></data>
+
+
+
+
+
+
+  <data name="en_contextmenunormallabel"><![CDATA[Normal View]]></data>
+  <data name="en_contextmenufisheyelabel"><![CDATA[Fisheye View]]></data>
+  <data name="en_contextmenuarchitecturallabel"><![CDATA[Architectural View]]></data>
+  <data name="en_contextmenulittleplanetlabel"><![CDATA[Little Planet View]]></data>
+
+
+  <data name="en_vr_setup_hmd0"><![CDATA[HMD AUSWÄHLEN ]]></data>
+  <data name="en_vr_setup_advanced"><![CDATA[ERWEITERTE EINSTELLUNGEN]]></data>
+  <data name="en_vr_setup_title"><![CDATA[Web VR Einstellungen ]]></data>
+  <data name="en_vr_setup_dvn1"><![CDATA[Gerät :]]></data>
+  <data name="en_vr_setup_siz1"><![CDATA[Bildschirmgröße:]]></data>
+  <data name="en_vr_setup_ipd1"><![CDATA[IPD:]]></data>
+  <data name="en_vr_setup_hmd1"><![CDATA[HDM:]]></data>
+  <data name="en_vr_setup_hmd3"><![CDATA[Anpassen]]></data>
+  <data name="en_vr_setup_cal"><![CDATA[Gyroskop Kalibrieren]]></data>
+  <data name="en_vr_setup_sav"><![CDATA[SPEICHERN ]]></data>
+  <data name="en_vr_setup_rst"><![CDATA[Reset]]></data>
+  <data name="en_vr_setup_simple"><![CDATA[EINFACH]]></data>
+  <data name="en_vr_setup_cls"><![CDATA[Schließen]]></data>
+  <data name="en_vr_setup_m31"><![CDATA[HMD Einstellungen ]]></data>
+  <data name="en_vr_setup_fov1"><![CDATA[FOV:]]></data>
+  <data name="en_vr_setup_dst1"><![CDATA[Verzeichnung :]]></data>
+  <data name="en_vr_setup_d2tx"><![CDATA[Verzeichnung 2:]]></data>
+  <data name="en_vr_setup_vig1"><![CDATA[Vignette:]]></data>
+  <data name="en_vr_setup_cac1"><![CDATA[Chromatische Aberration:]]></data>
+  <data name="en_vr_setup_olp1"><![CDATA[Überlappen:]]></data>
+  <data name="en_vr_setup_m35"><![CDATA[ZURÜCK]]></data>
+  <data name="en_vr_setup_cb1"><![CDATA[GYROSKOP]]></data>
+  <data name="en_vr_setup_cb2"><![CDATA[Place the device on a flat and[br]stable surface and tab CALIBRATE[br]to correct a gyroscope drifting.]]></data>
+  <data name="en_vr_setup_cb3"><![CDATA[Kalibrieren]]></data>
+  <data name="en_vr_setup_cb4"><![CDATA[Reset]]></data>
+  <data name="en_vr_setup_cb5"><![CDATA[ZURÜCK]]></data>
+  <data name="en_vr_setup_cb6"><![CDATA[Wird kalibriert... ]]></data>
+  <data name="en_vr_setup_cb7"><![CDATA[Kalibrierung Erfolgreich abgeschlossen ]]></data>
+  <data name="en_vr_setup_cb8"><![CDATA[kalibrierung fehlgeschlagen]]></data>
+  <data name="en_vr_setup_unavailable"><![CDATA[VR Modus[br] ist auf ihrem Gerät nicht verfügbar]]></data>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</krpano>
