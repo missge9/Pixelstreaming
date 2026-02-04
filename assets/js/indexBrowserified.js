@@ -2,7 +2,7 @@
 // KONFIGURATION: LOKAL ODER AWS
 // true  = Verbinde mit lokalem PC (127.0.0.1)
 // false = Verbinde mit AWS / Server
-var USE_LOCAL_CONNECTION = false; 
+var USE_LOCAL_CONNECTION = true; 
 // ==========================================
 
 var bStart = false;
@@ -332,11 +332,27 @@ function updateGradient(percentage) {
 }
 
 // Lade-Intervalle
-let checkpoints = [8, 10, 95, 99, 100];
-let checkpointIntervals = [10, 300, 800, 1200, 100]; 
-let currentCheckpoint = 0;
+let checkpoints = [15, 30, 60, 90, 100]; // Prozentwerte (angepasst für geschmeidigeren Verlauf)
+let checkpointIntervals = [50, 100, 200, 500, 100]; // Zeit in ms pro 1% Fortschritt
+let currentCheckpointIndex = 0;
 let currentWidth = 0; 
-let LoadIntervall; 
+let LoadIntervall;
+
+function jumpToProgress(percentage) {
+    // Sicherheit: Nicht zurückspringen
+    if (percentage > currentWidth) {
+        currentWidth = percentage;
+        updateGradient(currentWidth);
+    }
+}
+
+function updateGradient(percentage) {
+    var buttons = document.querySelectorAll('#btn3D'); 
+    buttons.forEach(function(button) {
+        // Orange zu Grün Verlauf
+        button.style.background = 'linear-gradient(90deg, #ff9800 ' + percentage + '%, #435f1a ' + percentage + '%)';
+    });
+}
 
 // ============================================================
 // FIX: DIESE VARIABLEN WIEDER EINFÜGEN (DAMIT DER FEHLER VERSCHWINDET)
@@ -346,18 +362,47 @@ let chanChechpoint2 = true;
 // ============================================================
 
 function startFakeLoading() {
-  console.log("start new checkpoint");
-  if (currentCheckpoint < checkpoints.length) {
-      LoadIntervall = setInterval(() => {
-          if (currentWidth < checkpoints[currentCheckpoint]) {
-              currentWidth++;
-              updateGradient(currentWidth); 
-          } 
-      }, checkpointIntervals[currentCheckpoint]);
-  }
+    console.log("Starte Loading Segment für Checkpoint Index: " + currentCheckpointIndex);
+    
+    // Alten Timer löschen, falls einer läuft
+    if (LoadIntervall) clearInterval(LoadIntervall);
+
+    // Wenn wir am Ende sind, abbrechen
+    if (currentCheckpointIndex >= checkpoints.length) return;
+
+    // Ziel für diesen Abschnitt holen
+    let targetPercent = checkpoints[currentCheckpointIndex];
+    let speed = checkpointIntervals[currentCheckpointIndex];
+
+    LoadIntervall = setInterval(() => {
+        // Solange wir das Ziel dieses Abschnitts noch nicht erreicht haben -> hochzählen
+        if (currentWidth < targetPercent) {
+            currentWidth++;
+            updateGradient(currentWidth);
+        } else {
+            // Ziel erreicht: Timer stoppen und auf den nächsten externen Trigger warten
+            // ODER (falls wir einfach durchlaufen wollen):
+            // clearInterval(LoadIntervall);
+        }
+    }, speed);
 }
 
-// ... (Rest der Datei bleibt gleich) ...
+// Diese Funktion rufen wir auf, wenn das System "wirklich" einen Schritt geschafft hat
+function triggerNextCheckpoint() {
+    console.log(">>> ECHTER FORTSCHRITT: Springe zum nächsten Checkpoint");
+
+    // 1. Zum aktuellen Ziel springen (falls der Timer zu langsam war)
+    if (currentCheckpointIndex < checkpoints.length) {
+        jumpToProgress(checkpoints[currentCheckpointIndex]);
+    }
+
+    // 2. Index erhöhen für den nächsten Abschnitt
+    currentCheckpointIndex++;
+
+    // 3. Nächsten Timer-Abschnitt starten
+    startFakeLoading();
+}
+
 
 // Slider Logic
 function sendTimeUpdate() {
@@ -470,6 +515,9 @@ function handleUnrealMenuData(json) {
     renderDynamicMenu();
 }
 
+var activeToolState = null; 
+
+// 1. Render Funktion anpassen (onclick Event geändert)
 function renderDynamicMenu() {
     var container = $("#dynamic-menu-wrapper");
     if (receivedMenus.length === 0) {
@@ -487,19 +535,37 @@ function renderDynamicMenu() {
     if (menuData.buttons && Array.isArray(menuData.buttons)) {
         menuData.buttons.forEach(function(btn) {
             var label = (btn.text === "ButtonName") ? btn.cmd : btn.text;
+            
+            // Wir geben 'this' im onclick mit, um den Button später färben zu können
             var btnHtml = `
-            <button onclick="sendCategoryCommand('${menuData.cmd}', '${btn.cmd}')" 
-                    style="width: 100%; padding: 8px; cursor: pointer; border: 1px solid #ccc; background: white; border-radius: 5px; font-size: 12px; font-weight: 600; color: #444; margin-bottom:5px; display: flex; align-items: center; justify-content: center;">
+            <button onclick="sendCategoryCommand('${menuData.cmd}', '${btn.cmd}', this)" 
+                    data-cmd="${btn.cmd}"
+                    class="dynamic-tool-btn"
+                    style="width: 100%; padding: 8px; cursor: pointer; border: 1px solid #ccc; background: white; border-radius: 5px; font-size: 12px; font-weight: 600; color: #444; margin-bottom:5px; display: flex; align-items: center; justify-content: center; transition: all 0.2s;">
                 ${label}
             </button>`;
             list.append(btnHtml);
         });
     }
+    
+    // Status wiederherstellen, falls wir das Menü neu rendern (z.B. beim Blättern)
+    restoreActiveButtonVisuals();
 
     if (receivedMenus.length > 1) {
         $("#menu-prev-btn, #menu-next-btn").css("visibility", "visible");
     } else {
         $("#menu-prev-btn, #menu-next-btn").css("visibility", "hidden");
+    }
+}
+
+// Hilfsfunktion: Färbt den Button wieder ein, wenn man im Menü blättert
+function restoreActiveButtonVisuals() {
+    if (activeToolState) {
+        // Suche den Button mit dem passenden Command
+        var btn = $(`.dynamic-tool-btn[data-cmd='${activeToolState.cmd}']`);
+        if (btn.length > 0) {
+            btn.addClass("tool-btn-active");
+        }
     }
 }
 
@@ -533,8 +599,53 @@ $(document).ready(function() {
     renderDynamicMenu();
 });
 
-function sendCategoryCommand(category, command) {
-    var fullCommand = category + ";" + command;
+// 2. Die neue Logik für das Senden und Umschalten
+function sendCategoryCommand(category, command, btnElement) {
+    var $btn = $(btnElement);
+    var fullCommand = "";
+
+    // FALL 1: Der geklickte Button ist bereits aktiv -> Ausschalten
+    if (activeToolState && activeToolState.cmd === command) {
+        console.log("Deaktiviere aktuelles Tool: " + command);
+        
+        // Befehl zum Abwählen senden (z.B. "Tools;FlugModus abgewaehlt")
+        fullCommand = category + ";" + command + " abgewaehlt";
+        
+        // Visuell zurücksetzen
+        $btn.removeClass("tool-btn-active");
+        activeToolState = null;
+    } 
+    // FALL 2: Ein anderer (oder noch kein) Button wird geklickt -> Einschalten
+    else {
+        // Wenn vorher schon etwas anderes aktiv war -> Das alte ausschalten
+        if (activeToolState) {
+            console.log("Schalte altes Tool aus: " + activeToolState.cmd);
+            
+            // Altes Tool abwählen an Unreal senden
+            var oldOffCommand = activeToolState.category + ";" + activeToolState.cmd + " abgewaehlt";
+            if (window.pixelStreaming && typeof window.pixelStreaming.emitUIInteraction === "function") {
+                window.pixelStreaming.emitUIInteraction(oldOffCommand);
+            }
+
+            // Visuell das alte entfernen (überall suchen, falls Menü gewechselt wurde)
+            $(".dynamic-tool-btn").removeClass("tool-btn-active");
+        }
+
+        // Das neue Tool aktivieren
+        console.log("Aktiviere neues Tool: " + command);
+        fullCommand = category + ";" + command;
+        
+        // Visuell markieren
+        $btn.addClass("tool-btn-active");
+        
+        // Status speichern
+        activeToolState = {
+            category: category,
+            cmd: command
+        };
+    }
+
+    // Den eigentlichen Befehl an Unreal senden
     console.log("Sende an Unreal: " + fullCommand);
     if (window.pixelStreaming && typeof window.pixelStreaming.emitUIInteraction === "function") {
         window.pixelStreaming.emitUIInteraction(fullCommand);
