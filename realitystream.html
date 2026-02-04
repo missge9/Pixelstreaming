@@ -23,6 +23,65 @@
   <script src="assets/js/socket.io.js"></script>
 
   <style>
+/* --- ORANGER HOME-BUTTON IN DER SIDEBAR --- */
+    .sidebar-home-btn-style {
+        width: 100%;
+        padding: 12px 0;
+        margin-bottom: 25px;
+        
+        /* Hintergrund Orange */
+        background: #ff9800; 
+        border: 1px solid #e68a00;
+        
+        border-radius: 4px;
+        font-family: 'Montserrat', sans-serif;
+        font-size: 13px;
+        font-weight: 700;
+        
+        /* Text weiss für besseren Kontrast auf Orange */
+        color: #ffffff; 
+        
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        display: block; /* Initial versteckt */
+    }
+
+    /* --- LADE-ANIMATIONEN --- */
+
+    /* 1. Weicher Übergang für den Hintergrund (damit der Balken fliesst) */
+    #btn3D {
+        transition: background 0.3s linear, transform 0.1s;
+    }
+
+    /* 2. Eine Klasse, um das Icon drehen zu lassen */
+    .rotate-icon {
+        animation: spin 1.5s infinite linear;
+    }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    /* 3. Pulsierender Text während des Ladens */
+    #btn3D.loading .ui-button__text {
+        animation: pulse 2s infinite ease-in-out;
+    }
+
+    @keyframes pulse {
+        0% { opacity: 1; }
+        50% { opacity: 0.6; }
+        100% { opacity: 1; }
+    }
+    .sidebar-home-btn-style:hover {
+        /* Etwas dunkleres Orange beim Drüberfahren */
+        background: #f57c00; 
+        color: #ffffff;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    }
     /* --- GRUNDLAYOUT --- */
     body, html {
       margin: 0;
@@ -358,8 +417,10 @@
         </div>
 
         <div id="ui-sidebar-right" class="sidebar-panel no-user-select">
-            
             <div id="sidebar-time-controls">
+                <button id="sidebarHomePage" class="sidebar-home-btn-style">
+                    ZURÜCK ZUR ÜBERSICHT
+                </button>
                 <h5 class="sidebar-section-title"> TAGESZEIT</h5>
                 <div>
                     <div class="control-label-row">

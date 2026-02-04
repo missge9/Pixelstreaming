@@ -1,4 +1,3 @@
-//StreamSetup.js
 const _projectName = __ProjectName;
 let   instance_ID;
 let   ipAdresse;
@@ -7,15 +6,15 @@ let   canClick = true;
 
 // Primär: WSS, mit Fallback auf polling
 const socket = io("https://rs.dvdarch.ch", {
-  path: "/socket.io",          // Standard-Pfad (ggf. anpassen)
+  path: "/socket.io",          
   transports: ["websocket", "polling"],
-  rememberUpgrade: false,      // erzwingt Probe statt „merken“
-  timeout: 20000,              // 20s Connect-Timeout
+  rememberUpgrade: false,      
+  timeout: 20000,              
   reconnection: true,
   reconnectionAttempts: 10,
   reconnectionDelay: 1000,
   reconnectionDelayMax: 5000,
-  withCredentials: false       // falls Cookies/Session nicht nötig
+  withCredentials: false       
 });
 
 socket.on("connect_error", (err) => {
@@ -25,7 +24,7 @@ socket.on("connect_error", (err) => {
     try { socket.close(); } catch(e){}
     const s2 = io("https://rs.dvdarch.ch", {
       path: "/socket.io",
-      transports: ["polling"],      // <-- erzwingt Long-Polling (HTTPS)
+      transports: ["polling"],      
       timeout: 20000,
       reconnection: true,
       reconnectionAttempts: 10,
@@ -42,18 +41,23 @@ function startPixelStreaming() {
   // -------------------------------------------------------------
   if (typeof USE_LOCAL_CONNECTION !== 'undefined' && USE_LOCAL_CONNECTION === true) { 
       console.log("🔌 LOKALER MODUS AKTIV: Verbinde mit 127.0.0.1...");
+      
+      // Reset für Ladebalken
+      currentCheckpoint = 0;
+      currentWidth = 0;
       updateGradient(0);
-      if(currentCheckpoint !=1){
+      
+      if(currentCheckpoint != 1){
         currentCheckpoint = 1;
         clearInterval(LoadIntervall); 
         startFakeLoading();
       }
+      
       ipAdresse = "ws://127.0.0.1:80"; 
       console.log("Lokale IP gesetzt:", ipAdresse);
       $("#publicip").val(ipAdresse);
       window.setIPAdresse(ipAdresse); 
       
-      // FIX: Nur EIN Intervall
       if (window.StartIntervallID) clearInterval(window.StartIntervallID);
       window.StartIntervallID = setInterval(window.initApplication, 1000); 
       
@@ -65,6 +69,10 @@ function startPixelStreaming() {
   // -------------------------------------------------------------
  
     const apiUrl = "https://rs.dvdarch.ch/start-ec2-instance";
+    
+    // Reset Start
+    currentCheckpoint = 0;
+    currentWidth = 0;
     updateGradient(0);
     console.log("---------Start Realitystream (AWS)-------------");
     
@@ -76,7 +84,8 @@ function startPixelStreaming() {
     .then(response => response.json())
     .then(data => {
       
-      if(currentCheckpoint !=1){
+      // Wenn Server antwortet, Balken weiterschieben
+      if(currentCheckpoint != 1){
         currentCheckpoint = 1;
         clearInterval(LoadIntervall); 
         startFakeLoading();
@@ -94,17 +103,14 @@ function startPixelStreaming() {
       window.setIPAdresse(ipAdresse); 
 
       // --- WICHTIGER FIX: INTERVALL BEREINIGUNG ---
-      
-      // Falls noch ein altes Intervall läuft -> stoppen
       if (window.StartIntervallID) clearInterval(window.StartIntervallID);
 
       // Zähler für die Handshake-Versuche
       let retryCount = 0;
+      let warmupStarted = false; // Verhindert mehrfaches Auslösen des Warmups
 
-      // Wir starten NUR das intelligente Intervall (alle 1s)
       window.StartIntervallID = setInterval(function() {
           
-          // Nur am Anfang loggen, um Konsole sauber zu halten
           if (retryCount === 0) {
               console.log("Versuche Verbindung aufzubauen...");
               window.initApplication();
@@ -113,33 +119,36 @@ function startPixelStreaming() {
           // Prüfung: Läuft Pixel Streaming?
           const video = document.querySelector('video');
           
-          // readyState >= 2 bedeutet: Wir haben Daten und können etwas sehen
           if (video && video.readyState >= 2 && !video.paused) { 
               
-              // Sicherheitscheck: Funktion existiert?
               if (window.pixelStreaming && typeof window.pixelStreaming.emitUIInteraction === "function") {
                   
-                  // Wir erhöhen den Zähler
                   retryCount++;
                   
                   console.log("📡 Stream läuft! Sende 'ClientReady' (Versuch " + retryCount + ")...");
                   window.pixelStreaming.emitUIInteraction("ClientReady");
 
-                  // --- LOGIK: WANN STOPPEN WIR? ---
-                  // 1. Wenn wir sehen, dass Menüs da sind (Unreal hat geantwortet!)
-                  //    Wir prüfen 'receivedMenus' aus der indexBrowserified.js
-                  // 2. ODER: Wenn wir es mehr als 8 Mal versucht haben (Timeout/Sicherheit)
-                  
                   var unrealHasAnswered = (typeof receivedMenus !== 'undefined' && receivedMenus.length > 1); 
 
+                  // Wenn Verbindung steht ODER Timeout erreicht ist:
                   if (unrealHasAnswered || retryCount > 8) {
-                      console.log("✅ Verbindung bestätigt oder Timeout erreicht. Stoppe Handshake.");
                       
-                      // Zur Sicherheit Tools entsperren (aber noch nicht anzeigen!)
-                      unlockTools(); 
-                      
-                      // Intervall stoppen -> WICHTIG!
-                      clearInterval(window.StartIntervallID); 
+                      // --- WARMUP LOGIK (15 SEKUNDEN) ---
+                      if (!warmupStarted) {
+                          warmupStarted = true;
+                          console.log("✅ Verbindung bestätigt. Starte 15s Warmup...");
+                          
+                          // Text aktualisieren, damit User weiss, dass es gleich losgeht
+                          $("#btn3D .ui-button__text").html("Verbindung hergestellt.<br />App wird initialisiert...");
+                          
+                          // 15 Sekunden warten
+                          setTimeout(function() {
+                              console.log("⏱️ Warmup beendet. App ist bereit.");
+                              unlockTools(); 
+                              clearInterval(window.StartIntervallID); 
+                              setClientReadyState(); // Neue Funktion: Button freigeben
+                          }, 15000); 
+                      }
                   }
               } else {
                   console.log("⏳ Warte auf PixelStreaming Objekt...");
@@ -149,28 +158,81 @@ function startPixelStreaming() {
       
     })
     .catch(error => {
-      console.error(error);
+      // ======================================================
+      // FEHLERBEHANDLUNG
+      // ======================================================
+      console.error("Fehler beim Starten:", error);
       canClick = true;
+      
+      // 1. WICHTIG: Status zurücksetzen
+      if(typeof ButtonStateEnum !== 'undefined') {
+          __ButtonState = ButtonStateEnum.EPrepare;
+      }
+
+      // 2. Button Reset
       $("#btn3D").removeClass("loading");
-        $("#btn3D").removeAttr("disabled");
+      $("#btn3D").removeClass("cursorWait"); 
+      $("#btn3D").removeAttr("disabled");
+      
+      // 3. Icon Rotation stoppen
+      $("#btn3D img").removeClass("rotate-icon");
+
+      // 4. Klick-Status Logik
       if( $("#btn3D").hasClass("clicked"))
         $("#btn3D").removeClass("clicked");
       else $("#btn3D").addClass("clicked");
 
+      // 5. Text Reset
       $("#btn3D .ui-button__text").html("Um sich frei bewegen zu können klicken <br />Sie hier um RealityStream zu laden");
+      
       $(".ui-sidebar__actions").removeClass("buttonMenuMarginTop14");
       $(".show3dtool").removeClass("buttonMenuMarginTop14");
       $(".ui-sidebar__actions").addClass("buttonMenuMarginTop9");
       $(".show3dtool").addClass("buttonMenuMarginTop9");
       $(".show3dtool").removeClass("RundgangButton");    
-      $("#jBox2 .jBox-content").html('RealityStream ist eine Online App in der Sie sich frei im Projekt bewegen können. Ausserdem gibt es verschiedene Elemente wie z.B. Sonnenstand, Materialien, Möbel, usw. die Sie konfigurieren können.');
+      
+      $("#jBox2 .jBox-content").html('RealityStream ist eine Online App...');
+      
       toastr.info ("Leider sind alle Server im Moment besetzt. Bitte versuchen Sie es in ein paar Minuten erneut.");
-      clearInterval(LoadIntervall);
-      updateGradient(100);
+      
+      // 7. Ladebalken STOPPEN und HINTERGRUND ENTFERNEN
+      if(LoadIntervall) clearInterval(LoadIntervall);
+      currentWidth = 0;      
+      currentCheckpoint = 0; 
+      $("#btn3D").css("background", ""); 
     });
     canClick = false;
   }
 
+// --- NEUE FUNKTION: Wird nach dem 15s Warmup aufgerufen ---
+function setClientReadyState() {
+    // Status auf "Fertig geladen" setzen
+    if(typeof ButtonStateEnum !== 'undefined') {
+        __ButtonState = ButtonStateEnum.ELoaddingComplated;
+    }
+    
+    $("#btn3D").removeClass("cursorWait");
+    $("#btn3D").removeClass("loading");
+    $("#btn3D").removeAttr("disabled");
+    
+    // Icon Animation stoppen
+    $("#btn3D img").removeClass("rotate-icon");
+
+    // Fertig-Text
+    $("#btn3D .ui-button__text").html("RealityStream ist bereit! <br />Klicken Sie hier um zu starten.");
+    
+    // Klasse für den fertigen Zustand (oft grün oder ähnlich definiert)
+    if(!$("#btn3D").hasClass("completeButton")) {
+        $("#btn3D").addClass("completeButton");
+    }
+    
+    // Ladebalken auf 100% zwingen
+    if(typeof LoadIntervall !== 'undefined') clearInterval(LoadIntervall);
+    updateGradient(100); 
+    
+    // Sound oder Toast optional
+    toastr.info ("RealityStream ist bereit! Klicken Sie hier um zu starten.");
+}
 
 function reconectPixelStreaming(){
   console.log("---------------Reconect------------------------");
@@ -188,28 +250,20 @@ function callAFK() {
     .catch(error => { console.error("Fehler beim API-Aufruf:", error); });
 }
 
-// -----------------------------------------------------------
-// ÄNDERUNG: Diese Funktion darf das Menü NICHT anzeigen
-// -----------------------------------------------------------
 function unlockTools() {
     console.log("🔓 Tools werden freigeschaltet (JS Force) - WARTEN AUF START-KLICK.");
-    
-    // WIR KOMMENTIEREN DAS AUS, damit es nicht sofort aufploppt:
-    // const rightSidebar = document.getElementById('ui-sidebar-right');
-    // const rightToggle = document.getElementById('toggle-right-btn');
-    // if (rightSidebar) rightSidebar.style.setProperty("display", "flex", "important");
-    // if (rightToggle) rightToggle.style.setProperty("display", "flex", "important");
 }
 
 function showRightSidebar() {
-    // AUCH HIER: Auskommentiert, damit nichts automatisch aufgeht
-    /*
-    const sidebar = document.getElementById('ui-sidebar-right');
-    const toggleBtn = document.getElementById('toggle-right-btn');
-    if (sidebar && sidebar.style.display !== 'flex') {
-        sidebar.style.setProperty('display', 'flex', 'important');
-        toggleBtn.style.setProperty('display', 'flex', 'important');
-        console.log("✅ Erste Nachricht von Unreal erhalten: Tools wurden eingeblendet.");
-    }
-    */
+    // Auskommentiert um automatisches Öffnen zu verhindern
 }
+
+// --- FIX: TOUCH SIMULATION DEAKTIVIEREN ---
+setInterval(function() {
+    if (typeof inputOptions !== 'undefined') {
+        if (inputOptions.fakeMouseWithTouches === true) {
+            console.log("🚫 Touch-Simulation durch User-Script blockiert.");
+            inputOptions.fakeMouseWithTouches = false;
+        }
+    }
+}, 1000);

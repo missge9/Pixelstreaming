@@ -2001,106 +2001,79 @@ let playerElementClientRect = undefined;
 let normalizeAndQuantizeUnsigned = undefined;
 let normalizeAndQuantizeSigned = undefined;
 let unquantizeAndDenormalizeUnsigned = undefined;
+// ============================================================
+// FIX: MAUS-KOORDINATEN FÜR "FILL" / "STRETCH" MODUS
+// ============================================================
+// ============================================================
+// FIX: MAUS-KOORDINATEN (HÖHEN-KORREKTUR)
+// ============================================================
 
-function setupNormalizeAndQuantize() {
+setupNormalizeAndQuantize = function() {
     let playerElement = document.getElementById('player');
-    let videoElement = playerElement.getElementsByTagName("VIDEO");
+    
+    // Wir suchen direkt das Video-Element, da dieses die korrekte Grösse hat (minus 90px)
+    let videoElement = playerElement.querySelector("video");
 
-    if (playerElement && videoElement.length > 0) {
-        let playerAspectRatio = playerElement.clientHeight / playerElement.clientWidth;
-        let videoAspectRatio = playerAspectRatio;
+    if (playerElement && videoElement) {
+        
+        console.log("🔧 Maus-Fix aktiv: Berechne basierend auf Video-Grösse...");
 
-        // Unsigned XY positions are the ratio (0.0..1.0) along a viewport axis,
-        // quantized into an uint16 (0..65536).
-        // Signed XY deltas are the ratio (-1.0..1.0) along a viewport axis,
-        // quantized into an int16 (-32767..32767).
-        // This allows the browser viewport and client viewport to have a different
-        // size.
-        // Hack: Currently we set an out-of-range position to an extreme (65535)
-        // as we can't yet accurately detect mouse enter and leave events
-        // precisely inside a video with an aspect ratio which causes mattes.
-        if (playerAspectRatio > videoAspectRatio) {
-            if (print_inputs) {
-                console.log('Setup Normalize and Quantize for playerAspectRatio > videoAspectRatio');
-            }
-            let ratio = playerAspectRatio / videoAspectRatio;
-            // Unsigned.
-            normalizeAndQuantizeUnsigned = (x, y) => {
-                let normalizedX = x / playerElement.clientWidth;
-                let normalizedY = ratio * (y / playerElement.clientHeight - 0.5) + 0.5;
-                if (normalizedX < 0.0 || normalizedX > 1.0 || normalizedY < 0.0 || normalizedY > 1.0) {
-                    return {
-                        inRange: false,
-                        x: 65535,
-                        y: 65535
-                    };
-                } else {
-                    return {
-                        inRange: true,
-                        x: normalizedX * 65536,
-                        y: normalizedY * 65536
-                    };
-                }
+        normalizeAndQuantizeUnsigned = (x, y) => {
+            // 1. Wir holen uns die ECHTEN Dimensionen des Videos
+            // (Das berücksichtigt dein calc(100% - 90px) aus dem CSS)
+            let videoRect = videoElement.getBoundingClientRect();
+            let playerRect = playerElement.getBoundingClientRect();
+
+            // 2. Berechnung der relativen Position im Video
+            // Wenn das Video z.B. bei top:0 startet, ist 'y' meist korrekt relativ zum Player.
+            // Aber der Teiler muss die Video-Höhe sein, nicht die Player-Höhe.
+            
+            let realWidth = videoRect.width;
+            let realHeight = videoRect.height;
+            
+            // OPTIONAL: Falls das Video nicht ganz oben anfängt (Offset korrigieren)
+            // let yOffset = videoRect.top - playerRect.top;
+            // let correctedY = y - yOffset;
+            let correctedY = y; 
+
+            // Prozentuale Berechnung
+            let normalizedX = x / realWidth;
+            let normalizedY = correctedY / realHeight;
+
+            return {
+                inRange: (normalizedX >= 0 && normalizedX <= 1 && normalizedY >= 0 && normalizedY <= 1),
+                x: normalizedX * 65536,
+                y: normalizedY * 65536
             };
-            unquantizeAndDenormalizeUnsigned = (x, y) => {
-                let normalizedX = x / 65536;
-                let normalizedY = (y / 65536 - 0.5) / ratio + 0.5;
-                return {
-                    x: normalizedX * playerElement.clientWidth,
-                    y: normalizedY * playerElement.clientHeight
-                };
+        };
+
+        // Rückrechnung (für Cursor Positionierung etc.)
+        unquantizeAndDenormalizeUnsigned = (x, y) => {
+            let videoRect = videoElement.getBoundingClientRect();
+            let normalizedX = x / 65536;
+            let normalizedY = y / 65536;
+            return {
+                x: normalizedX * videoRect.width,
+                y: normalizedY * videoRect.height
             };
-            // Signed.
-            normalizeAndQuantizeSigned = (x, y) => {
-                let normalizedX = x / (0.5 * playerElement.clientWidth);
-                let normalizedY = (ratio * y) / (0.5 * playerElement.clientHeight);
-                return {
-                    x: normalizedX * 32767,
-                    y: normalizedY * 32767
-                };
+        };
+
+        // Deltas (Maus-Bewegung)
+        normalizeAndQuantizeSigned = (x, y) => {
+            let videoRect = videoElement.getBoundingClientRect();
+            let normalizedX = x / (0.5 * videoRect.width);
+            let normalizedY = y / (0.5 * videoRect.height);
+            return {
+                x: normalizedX * 32767,
+                y: normalizedY * 32767
             };
-        } else {
-            if (print_inputs) {
-                console.log('Setup Normalize and Quantize for playerAspectRatio <= videoAspectRatio');
-            }
-            let ratio = videoAspectRatio / playerAspectRatio;
-            // Unsigned.
-            normalizeAndQuantizeUnsigned = (x, y) => {
-                let normalizedX = ratio * (x / playerElement.clientWidth - 0.5) + 0.5;
-                let normalizedY = y / playerElement.clientHeight;
-                if (normalizedX < 0.0 || normalizedX > 1.0 || normalizedY < 0.0 || normalizedY > 1.0) {
-                    return {
-                        inRange: false,
-                        x: 65535,
-                        y: 65535
-                    };
-                } else {
-                    return {
-                        inRange: true,
-                        x: normalizedX * 65536,
-                        y: normalizedY * 65536
-                    };
-                }
-            };
-            unquantizeAndDenormalizeUnsigned = (x, y) => {
-                let normalizedX = (x / 65536 - 0.5) / ratio + 0.5;
-                let normalizedY = y / 65536;
-                return {
-                    x: normalizedX * playerElement.clientWidth,
-                    y: normalizedY * playerElement.clientHeight
-                };
-            };
-            // Signed.
-            normalizeAndQuantizeSigned = (x, y) => {
-                let normalizedX = (ratio * x) / (0.5 * playerElement.clientWidth);
-                let normalizedY = y / (0.5 * playerElement.clientHeight);
-                return {
-                    x: normalizedX * 32767,
-                    y: normalizedY * 32767
-                };
-            };
-        }
+        };
     }
+};
+
+// Fix sofort anwenden
+if(document.getElementById('player')) {
+   setupNormalizeAndQuantize();
 }
 
 // https://developer.mozilla.org/en-US/docs/Web/API/MouseEvent/button

@@ -6626,9 +6626,14 @@ class VideoPlayer {
         this.videoElement.className = 'streamingVideo';
         this.videoElement.disablePictureInPicture = true;
         this.videoElement.playsInline = true;
+
+        // FIX: Setze sauberes CSS ohne harte Pixel-Werte für Positionierung
         this.videoElement.style.width = '100%';
-        this.videoElement.style.bottom = '75px';
+        this.videoElement.style.height = '100%'; // Statt bottom/top hacks
+        this.videoElement.style.objectFit = 'cover'; // Oder 'contain', je nach Wunsch
+        this.videoElement.style.position = 'absolute';
         this.videoElement.style.top = '0px';
+        this.videoElement.style.left = '0px';
         videoElementParent.appendChild(this.videoElement);
         this.onResizePlayerCallback = () => {
             console.log('Resolution changed, restyling player, did you forget to override this function?');

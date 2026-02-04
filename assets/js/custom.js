@@ -293,3 +293,225 @@
     }
 })(jQuery)
 
+
+// ============================================================
+// FIX: SICHERER TAB-WECHSEL (WAKE UP)
+// ============================================================
+document.addEventListener("visibilitychange", function() {
+    if (document.visibilityState === 'visible') {
+        console.log("👀 Tab aufgeweckt! Prüfe Sicherheit...");
+
+        // Sicherheits-Check: Existiert das PixelStreaming Objekt überhaupt?
+        if (!window.pixelStreaming) {
+             console.log("⚠️ PixelStreaming Objekt nicht gefunden. Breche Wake-Up ab.");
+             return;
+        }
+
+        // Sicherheits-Check: Ist die WebRTC Verbindung aktiv? 
+        // Dies verhindert den 'peerConnection undefined' Fehler
+        if (!window.webRtcPlayerObj || !window.webRtcPlayerObj.peerConnection) {
+             console.log("⚠️ Keine aktive PeerConnection. Warte auf automatischen Reconnect...");
+             // Hier nichts tun, da 'addIceCandidate' sonst fehlschlägt
+             return;
+        }
+
+        // Sicherheits-Check: Ist die Verbindung stabil genug für ICE Candidates?
+        // Verhindert 'remote description was null'
+        if (window.webRtcPlayerObj.peerConnection.remoteDescription === null) {
+             console.log("⚠️ Verbindung noch im Aufbau (RemoteDesc null). Sende keine Befehle.");
+             return;
+        }
+
+        console.log("✅ Verbindung scheint stabil. Führe Layout-Updates durch...");
+
+        // 1. Layout korrigieren
+        window.dispatchEvent(new Event('resize'));
+        
+        // Resize Player nur aufrufen, wenn Funktion existiert
+        if (typeof window.resizePlayer === "function") {
+            try {
+                window.resizePlayer();
+            } catch(e) { console.warn("Resize Fehler abgefangen:", e); }
+        }
+
+        // 2. Video Playback sicherstellen
+        var video = document.querySelector('video');
+        if (video && video.paused && video.readyState >= 2) {
+            video.play().catch(e => {});
+        }
+
+        // 3. Handshake nur senden, wenn wir im Lade-Modus hängen geblieben sind
+        if (typeof __ButtonState !== 'undefined' && __ButtonState === ButtonStateEnum.ELoadding) {
+             console.log("Sende ClientReady (Safe Mode)...");
+             window.pixelStreaming.emitUIInteraction("ClientReady");
+        }
+    }
+});
+
+function attemptClientReadyHandshake() {
+    if (window.pixelStreaming && typeof window.pixelStreaming.emitUIInteraction === "function") {
+        console.log("📡 Sende manuelles 'ClientReady' an Unreal...");
+        window.pixelStreaming.emitUIInteraction("ClientReady");
+        
+        // Auch sicherstellen, dass das Video läuft (manchmal pausieren Browser Videos im Hintergrund)
+        var video = document.querySelector('video');
+        if (video && video.paused && video.readyState >= 2) {
+            console.log("▶️ Video war pausiert. Starte Playback...");
+            video.play().catch(e => console.log("Autoplay prevent"));
+        }
+    } else {
+        console.log("⏳ PixelStreaming noch nicht bereit für Handshake.");
+    }
+}
+
+// ============================================================
+// FIX: XR FEHLER UNTERDRÜCKEN
+// ============================================================
+function registerXRHandler() {
+    if (window.pixelStreaming) {
+        // Wir registrieren einen leeren Handler, damit die Fehlermeldung verschwindet
+        try {
+            window.pixelStreaming.addResponseEventListener("XRButtonTouchReleased", function(){});
+            console.log("✅ XR-Handler registriert (Fehler unterdrückt).");
+        } catch(e) {
+            console.warn("Konnte XR Handler noch nicht registrieren, versuche es später.");
+        }
+    } else {
+        setTimeout(registerXRHandler, 1000);
+    }
+}
+registerXRHandler();
+
+
+// ===============================================
+// FIX: MOUSE COORDINATE CORRECTION
+// ===============================================
+
+function fixMouseCoordinates() {
+    const videoElement = document.querySelector('#streamingVideo, #player video, .ui-image video');
+    
+    if (!videoElement) {
+        console.log("❌ Kein Video-Element gefunden für Mouse-Fix");
+        return;
+    }
+    
+    console.log("🔧 Mouse Coordinate Fix aktiviert für:", videoElement);
+    
+    // 1. Video-Skalierung berechnen
+    function getVideoScale() {
+        const videoWidth = videoElement.videoWidth;
+        const videoHeight = videoElement.videoHeight;
+        const displayWidth = videoElement.clientWidth;
+        const displayHeight = videoElement.clientHeight;
+        
+        if (!videoWidth || !videoHeight) {
+            return { scaleX: 1, scaleY: 1, offsetX: 0, offsetY: 0 };
+        }
+        
+        // Berechne Skalierung basierend auf object-fit: fill
+        const scaleX = displayWidth / videoWidth;
+        const scaleY = displayHeight / videoHeight;
+        
+        return {
+            scaleX: scaleX,
+            scaleY: scaleY,
+            offsetX: 0,
+            offsetY: 0
+        };
+    }
+    
+    // 2. Event-Listener für Maus-Events hinzufügen
+    function addMouseListeners() {
+        // Override für PixelStreaming's mouse event handler
+        if (window.pixelStreaming && window.pixelStreaming.config) {
+            const originalOnMouseMove = window.pixelStreaming.config.onMouseMove;
+            
+            if (originalOnMouseMove) {
+                window.pixelStreaming.config.onMouseMove = function(x, y, deltaX, deltaY) {
+                    const scale = getVideoScale();
+                    
+                    // Koordinaten transformieren
+                    const correctedX = x / scale.scaleX;
+                    const correctedY = y / scale.scaleY;
+                    
+                    // Ursprüngliche Funktion mit korrigierten Koordinaten aufrufen
+                    originalOnMouseMove.call(this, correctedX, correctedY, deltaX, deltaY);
+                };
+                
+                console.log("✅ Mouse-Move Handler korrigiert");
+            }
+            
+            // Auch Mouse-Down und Mouse-Up korrigieren
+            ['onMouseDown', 'onMouseUp'].forEach(eventName => {
+                if (window.pixelStreaming.config[eventName]) {
+                    const originalHandler = window.pixelStreaming.config[eventName];
+                    
+                    window.pixelStreaming.config[eventName] = function(button, x, y) {
+                        const scale = getVideoScale();
+                        
+                        // Koordinaten transformieren
+                        const correctedX = x / scale.scaleX;
+                        const correctedY = y / scale.scaleY;
+                        
+                        // Ursprüngliche Funktion aufrufen
+                        originalHandler.call(this, button, correctedX, correctedY);
+                    };
+                }
+            });
+        }
+    }
+    
+    // 3. Wait for video to be ready
+    if (videoElement.readyState >= 1) {
+        addMouseListeners();
+    } else {
+        videoElement.addEventListener('loadedmetadata', addMouseListeners);
+    }
+    
+    // 4. Auch auf Resize reagieren
+    window.addEventListener('resize', function() {
+        setTimeout(addMouseListeners, 100);
+    });
+}
+
+// 5. Fix nach PixelStreaming Initialisierung anwenden
+function applyMouseFixAfterLoad() {
+    // Warte auf PixelStreaming
+    const checkInterval = setInterval(() => {
+        if (window.pixelStreaming && document.querySelector('video')) {
+            clearInterval(checkInterval);
+            setTimeout(fixMouseCoordinates, 500);
+        }
+    }, 500);
+    
+    // Timeout nach 10 Sekunden
+    setTimeout(() => {
+        clearInterval(checkInterval);
+        if (document.querySelector('video')) {
+            fixMouseCoordinates();
+        }
+    }, 10000);
+}
+
+// 6. Bei Start aufrufen
+document.addEventListener('DOMContentLoaded', applyMouseFixAfterLoad);
+
+// 7. Auch nach dem Starten von RealityStream
+function attachFixToRealityStream() {
+    const originalStartFunc = window.startPixelStreaming;
+    
+    if (originalStartFunc) {
+        window.startPixelStreaming = function() {
+            originalStartFunc.call(this);
+            
+            // Fix nach 3 Sekunden anwenden (wenn das Video lädt)
+            setTimeout(() => {
+                if (document.querySelector('#furioos_container:not(.hide)')) {
+                    fixMouseCoordinates();
+                }
+            }, 3000);
+        };
+    }
+}
+
+attachFixToRealityStream();

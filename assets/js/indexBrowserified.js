@@ -1,9 +1,8 @@
-//indexBrowserified.js
 // ==========================================
 // KONFIGURATION: LOKAL ODER AWS
 // true  = Verbinde mit lokalem PC (127.0.0.1)
 // false = Verbinde mit AWS / Server
-var USE_LOCAL_CONNECTION = true; 
+var USE_LOCAL_CONNECTION = false; 
 // ==========================================
 
 var bStart = false;
@@ -16,7 +15,7 @@ var complatedTitile ='RealityStream ist bereit! <br />Klicken Sie hier um zu sta
 console.log("✅ MEIN JS WURDE GELADEN!");
 
 // ===============================================
-// SIDEBAR KLICK LOGIK
+// SIDEBAR KLICK LOGIK (WOHNUNGSLISTE)
 // ===============================================
 $("#listItemList").on("click", ".ui-sidebar__list-item", function (e) {
   e.preventDefault();
@@ -25,35 +24,31 @@ $("#listItemList").on("click", ".ui-sidebar__list-item", function (e) {
   // verkaufte/disabled Elemente ignorieren
   if ($(this).hasClass("disabled")) return;
 
-  // Bevorzugt link360, sonst attrUrl (beides wird beim Erstellen gesetzt)
+  // Bevorzugt link360, sonst attrUrl
   const targetUrl = $(this).attr("link360") || $(this).attr("attrUrl");
 
   if (__EventType === EventTypeEnum.E360) {
-    // Im 360-Modus: im bestehenden Iframe laden, UI unverändert lassen
+    // Im 360-Modus: im bestehenden Iframe laden
     if (targetUrl) {
       $("#iframe360").removeClass("hide").attr("src", targetUrl);
-      $("#furioos_container").addClass("hide"); // sicherstellen, dass 3D ausgeblendet bleibt
+      $("#furioos_container").addClass("hide"); 
       
-      // --- NEU: HOME BUTTON LOGIK ---
-      // Wir prüfen, ob die geladene URL ungleich der Startseite ist
+      // --- HOME BUTTON LOGIK (Schwebender Button) ---
       if (typeof __360MainPage !== 'undefined' && targetUrl !== __360MainPage) {
-          // Wir sind auf einer Unterseite -> Button anzeigen
           $("#homePage").css("display", "flex"); 
       } else {
-          // Wir sind auf der Startseite -> Button weg
           $("#homePage").hide();
       }
-      // -----------------------------
     }
   } else {
-    // Im 3D-Modus bleibt das Verhalten wie bisher
+    // Im 3D-Modus: Signal an Unreal
     const unique = $(this).attr("unique");
     if (window.pixelStreaming && unique) {
       window.pixelStreaming.emitUIInteraction(unique);
     }
   }
 
-  // Optisches Active-State Handling
+  // Active-State Handling
   $(".ui-sidebar__list-item").removeClass("active");
   $(this).addClass("active");
 });
@@ -64,9 +59,7 @@ $(".ui-sidebar__list-item").on("click",function(){
 })
 
 $(".ui-sidebar__list-item").mouseenter(function(){
-  if(__EventType === EventTypeEnum.E360){
-
-  }else{
+  if(__EventType !== EventTypeEnum.E360){
     window.pixelStreaming.emitUIInteraction($(this).attr("enterunique"));
   }
   var enterUniqueValue = $(this).attr("enterunique");
@@ -75,10 +68,7 @@ $(".ui-sidebar__list-item").mouseenter(function(){
 })
 
 $(".ui-sidebar__list-item").mouseleave(function(){
-
-  if(__EventType === EventTypeEnum.E360){
-
-  } else{
+  if(__EventType !== EventTypeEnum.E360){
     window.pixelStreaming.emitUIInteraction($(this).attr("leaveunique"));
   }
   var enterUniqueValue = $(this).attr("enterunique");
@@ -86,30 +76,33 @@ $(".ui-sidebar__list-item").mouseleave(function(){
   updatePolygonAlpha(htmValue, 0.0);
 })
 
+// Klick auf den Start-Button (Wrapper)
 $('#btn3DHover').click(function(){
-  // $('#btn3D').click()
   updateGradient(0);
-  if(__ButtonState ===ButtonStateEnum.ELoadding) return;
+  if(__ButtonState === ButtonStateEnum.ELoadding) return;
   btn3DClickEvent();
   $("#btn3DHover").width($('#btn3D').width())
 })
 
 // ===============================================
-// HOME BUTTON LOGIK
+// HOME BUTTON LOGIK (GILT FÜR BEIDE BUTTONS)
 // ===============================================
-$("#homePage").click(function() {
+$("#homePage, #sidebarHomePage").click(function() {
     
+    console.log("🏠 Home-Button geklickt...");
+
     // 1. BEFEHL AN UNREAL SENDEN
     if (window.pixelStreaming && typeof window.pixelStreaming.emitUIInteraction === "function") {
-        console.log("🏠 Sende 'home' an Unreal...");
+        console.log("📤 Sende 'home' an Unreal...");
         window.pixelStreaming.emitUIInteraction("home");
 
-        // 2. KURZ DARAUF 'NaN' SENDEN (RESET)
-        // Wir warten 100ms, damit Unreal den ersten Befehl sicher "frisst"
+        // 2. RESET SENDEN (kurz verzögert)
         setTimeout(function() {
             console.log("🔄 Sende Reset 'NaN' an Unreal...");
             window.pixelStreaming.emitUIInteraction("NaN");
         }, 100);
+    } else {
+        console.warn("⚠️ Konnte nicht an Unreal senden: PixelStreaming Objekt nicht gefunden.");
     }
 
     // 3. Iframe zurück zur Startseite setzen
@@ -117,10 +110,12 @@ $("#homePage").click(function() {
         $("#iframe360").attr("src", __360MainPage);
     }
     
-    // 4. Button verstecken (wir sind ja jetzt Home)
-    $(this).hide();
+    // 4. Den schwebenden Home-Button verstecken
+    $("#homePage").hide();
     
-    // 5. Active Status in der Liste entfernen
+    // HINWEIS: #sidebarHomePage wird NICHT versteckt, damit er in der Sidebar bleibt!
+    
+    // 5. Active Status entfernen
     $(".ui-sidebar__list-item").removeClass("active");
 });
 
@@ -129,13 +124,26 @@ $("#homePage").click(function() {
 // ===============================================
 function btn3DClickEvent(){
   var _thisButton   =  $('#btn3D');
+  var _iconImg      =  $("#btn3D img"); // Referenz auf das Icon für Animation
+
   switch(__ButtonState){
+    
+    // --- 1. STATUS: VORBEREITUNG (Start gedrückt) ---
     case ButtonStateEnum.EPrepare:{
       __ButtonState = ButtonStateEnum.ELoadding;
+      
+      // Animationen starten
       _thisButton.addClass("cursorWait");
+      _iconImg.addClass("rotate-icon"); // Icon drehen lassen
+      _thisButton.addClass("loading");
+      
+      // Text aktualisieren
       $("#btn3D .ui-button__text").html("RealityStream lädt im Hintergrund. <br /> Dies dauert ca. 1. Minute.");
-      $("#btn3D").addClass("loading");
+      
+      // Button deaktivieren
       $("#btn3D").attr("disabled","disabled");
+      
+      // Verbindung starten
       if(NotReconect){
         startPixelStreaming();
       }else{
@@ -143,170 +151,150 @@ function btn3DClickEvent(){
       }
       
     } ;break;
+    
+    // --- 2. STATUS: LÄDT NOCH ---
     case ButtonStateEnum.ELoadding:{
       if(_thisButton.hasClass("clicked"))
-      _thisButton.removeClass("clicked");
-      else _thisButton.addClass("clicked");
+        _thisButton.removeClass("clicked");
+      else 
+        _thisButton.addClass("clicked");
+      
       toastr.info (complatedTitile);
       console.log("Gedrückt1");
       resizePlayerStyle();
     };break;
     
-    // ==========================================================
-    // WICHTIG: HIER WIRD DAS MENÜ GEÖFFNET
-    // ==========================================================
+    // --- 3. STATUS: FERTIG GELADEN (Start der Anwendung) ---
     case ButtonStateEnum.ELoaddingComplated:{
       __ButtonState = ButtonStateEnum.E360;
-      console.log("Gedrückt2");
+      console.log("Gedrückt2 - Start der Anwendung");
 
-      //Hotfix für erste mal klicken --> immitiert einen fake klick ins player div
+      // Animation stoppen
+      _iconImg.removeClass("rotate-icon");
+
+      // Hotfix: Fokus auf Player setzen (Fake-Rechtsklick)
       setTimeout(function() {
-          var elements = document.getElementsByTagName("VIDEO");
-          var videoElement = elements[0];
-          
-          if (videoElement) {
-            var event = new MouseEvent("contextmenu", {
-              bubbles: true,
-              cancelable: true,
-              view: window
-            });
-          
-            videoElement.dispatchEvent(event);
-          }
-          console.log("------------//GEDRÜCKT//-------------------");
-        }, 100);
+        var element = document.getElementById("videoParentElement") || document.querySelector("video");
+        if (element) {
+            var event = new MouseEvent("contextmenu", { bubbles: true, cancelable: true, view: window });
+            element.dispatchEvent(event);
+            console.log("✅ Fake-Klick (Start) ausgeführt.");
+        }
+      }, 100);
       
       $("#furioos_container").focus();
+      
+      // Button Styles
       if(_thisButton.hasClass("clicked"))
         _thisButton.removeClass("clicked");
-      else _thisButton.addClass("clicked");
+      else 
+        _thisButton.addClass("clicked");
+      
       $("#btn3D").removeClass("completeButton");
       
+      // Layer umschalten
       $("#furioos_container").removeClass("hide");
       $("#iframe360").addClass("hide");
       
-      // Home Button verstecken (Unreal ist jetzt aktiv)
+      // Schwebenden Home-Button verstecken
       $("#homePage").hide(); 
 
       // -----------------------------------------------------------
-      // NEU: SIDEBAR ERST JETZT EINBLENDEN (beim Start-Klick)
+      // SIDEBAR & BUTTONS EINBLENDEN
       // -----------------------------------------------------------
-      console.log("🟢 Start-Knopf gedrückt: Blende Sidebar jetzt ein.");
+      console.log("🟢 Start-Knopf gedrückt: Blende Sidebar & Buttons ein.");
       
-      // 1. Sidebar sichtbar machen (display: flex)
       $("#ui-sidebar-right").attr("style", "display: flex !important");
       $("#toggle-right-btn").attr("style", "display: flex !important");
-      
-      // 2. Sicherstellen, dass sie ausgeklappt ist
       $("#ui-sidebar-right").removeClass("collapsed");
       
-      // 3. Pfeil-Icon korrigieren (Pfeil nach rechts = Menü ist offen)
-      $("#toggle-right-btn").html('&#9654;'); 
+      // Hier wird der Sidebar-Button sichtbar gemacht:
+      $("#sidebarHomePage").show(); 
       
-      // 4. Resize feuern für Layout-Update
+      $("#toggle-right-btn").html('&#9654;'); // Pfeil korrigieren
+      
       setTimeout(function() { window.dispatchEvent(new Event('resize')); }, 100);
       // -----------------------------------------------------------
 
       __EventType = EventTypeEnum.E3D;
+      
+      // Footer Button anpassen
       $("#btn3D .ui-button__text").html("Rundgang");
-
       $("#btn3D img").attr("src", "assets/image/360.png");
       $("#btn3D img").css("width","52px");
-      $(".ui-sidebar__actions").removeClass("buttonMenuMarginTop9");
-      $(".show3dtool").removeClass("buttonMenuMarginTop9");
-      $(".ui-sidebar__actions").addClass("buttonMenuMarginTop14");
-      $(".show3dtool").addClass("buttonMenuMarginTop14");
-      $(".show3dtool").addClass("RundgangButton");
+      
+      $(".ui-sidebar__actions").removeClass("buttonMenuMarginTop9").addClass("buttonMenuMarginTop14");
+      $(".show3dtool").removeClass("buttonMenuMarginTop9").addClass("buttonMenuMarginTop14").addClass("RundgangButton");
         
       $("#jBox2 .jBox-content").html('Um zurück zum 360° zu gelangen, klicken Sie hier');
 
-      //Hotfix Kleben verhindern
-      var videoParentElement = Array.from(document.querySelectorAll("#videoParentElement"));
+      // Video-Elemente bereinigen (gegen Klebenbleiben)
       setTimeout(function() {
         var videoElements = Array.from(document.querySelectorAll("#streamingVideo"));
         var audioElements = Array.from(document.querySelectorAll("#freezeFrame"));
         
-        for (let i = 0; i < videoElements.length - 1; i++) {
-            videoElements[i].remove();
-        }
-
-        for (let i = 0; i < audioElements.length - 1; i++) {
-          audioElements[i].remove();
-        }
+        for (let i = 0; i < videoElements.length - 1; i++) videoElements[i].remove();
+        for (let i = 0; i < audioElements.length - 1; i++) audioElements[i].remove();
 
         window.resizePlayer();
-
       }, 400); 
 
+      // Weiterer Touch-Fix Versuch
       setTimeout(function() {
-        if (videoParentElement.length > 0) {
-          var videoElement = videoParentElement[0]; 
-          var mousedownEvent = new MouseEvent('mousedown', {
-            bubbles: true,
-            cancelable: true,
-            view: window
-          });
-          videoElement.dispatchEvent(mousedownEvent);
-          var mouseupEvent = new MouseEvent('mouseup', {
-            bubbles: true,
-            cancelable: true,
-            view: window
-          });
-          videoElement.dispatchEvent(mouseupEvent);
+        var videoElement = document.querySelector("video");
+        if (videoElement) {
+          videoElement.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true, view: window }));
+          videoElement.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true, view: window }));
         }
       }, 600); 
       
     };break;
     
-    // --- HIER WIRD ZURÜCK ZU 360 GEWECHSELT ---
+    // --- 4. STATUS: ZURÜCK ZU 360 ---
     case ButtonStateEnum.E360:{
       
       NotReconect = false;
       __ButtonState = ButtonStateEnum.EPrepare;
       __EventType = EventTypeEnum.E360;
+      
       if(_thisButton.hasClass("clicked"))
-      _thisButton.removeClass("clicked");
-      else _thisButton.addClass("clicked");
+        _thisButton.removeClass("clicked");
+      else 
+        _thisButton.addClass("clicked");
 
       $("#iframe360").removeClass("hide");
       $("#furioos_container").addClass("hide");
       $("#iframe360").attr("src", __360MainPage);
       
-      // Home Button bleibt hier auch weg, da wir zur Main Page gehen
       $("#homePage").hide();
 
-      // =======================================================
-      // NEU: TOOLS AUSBLENDEN (Rechte Sidebar weg)
-      // =======================================================
+      // Tools ausblenden
       console.log("🔙 Zurück zum Rundgang: Blende Tools aus.");
       $("#ui-sidebar-right").attr("style", "display: none !important");
       $("#toggle-right-btn").attr("style", "display: none !important");
-      // =======================================================
 
+      // Button zurücksetzen
       $("#btn3D img").attr("src", "assets/image/3D.png");
       $("#btn3D img").css("width","64px");
       $("#btn3D .ui-button__text").html("Um sich frei bewegen zu können klicken <br />Sie hier um RealityStream zu laden");
 
-      $(".ui-sidebar__actions").removeClass("buttonMenuMarginTop14");
-      $(".show3dtool").removeClass("buttonMenuMarginTop14");
-      $(".ui-sidebar__actions").addClass("buttonMenuMarginTop9");
-      $(".show3dtool").addClass("buttonMenuMarginTop9");
-      $(".show3dtool").removeClass("RundgangButton");
+      $(".ui-sidebar__actions").removeClass("buttonMenuMarginTop14").addClass("buttonMenuMarginTop9");
+      $(".show3dtool").removeClass("buttonMenuMarginTop14").addClass("buttonMenuMarginTop9").removeClass("RundgangButton");
       
-      $("#jBox2 .jBox-content").html('RealityStream ist eine Online App in der Sie sich frei im Projekt bewegen können. Ausserdem gibt es verschiedene Elemente wie z.B. Sonnenstand, Materialien, Möbel, usw. die Sie konfigurieren können.');
+      $("#jBox2 .jBox-content").html('RealityStream ist eine Online App in der Sie sich frei im Projekt bewegen können...');
     }
   }
 }
 
+// Timer & AFK Logic
 var maxTime = 30;
 var timer = maxTime;
 $('body').on('keydown mousemove mousedown', function(e) {
-  timer = maxTime; // reset
+  timer = maxTime; 
 });
 
 var intervalId = setInterval(function() {
   timer--;
-  //三十分钟没有使用，自动关掉服务器
   if (timer <= 0) {
     ShutdownInstance();
     clearInterval(intervalId);
@@ -329,26 +317,33 @@ function getHTMValByEnterUnique(value) {
           return houseDetailJson[i].HTMVal;
       }
   }
-  return null; // nicht gefunden
+  return null;
 }
 
-function updateGradient(percentage) {
-  var buttons = document.querySelectorAll('.button, .button .front, .button .back');
+// ... (oberer Teil bleibt gleich) ...
 
+// --- VERBESSERTE PROGRESS BAR ---
+function updateGradient(percentage) {
+  var buttons = document.querySelectorAll('#btn3D'); 
   buttons.forEach(function(button) {
-      button.style.background = 'linear-gradient(to right, var(--bg) ' + percentage + '%, #435f1a ' + percentage + '%)';
+      // Orange zu Grün Verlauf
+      button.style.background = 'linear-gradient(90deg, #ff9800 ' + percentage + '%, #435f1a ' + percentage + '%)';
   });
 }
 
-
-let checkpoints = [8, 10, 60, 95, 100];
+// Lade-Intervalle
+let checkpoints = [8, 10, 95, 99, 100];
 let checkpointIntervals = [10, 300, 800, 1200, 100]; 
 let currentCheckpoint = 0;
-let prevCheckpoint = 0;
 let currentWidth = 0; 
 let LoadIntervall; 
+
+// ============================================================
+// FIX: DIESE VARIABLEN WIEDER EINFÜGEN (DAMIT DER FEHLER VERSCHWINDET)
+// ============================================================
 let canchangeCheckpoint = true;
-let chanChechpoint2 = true
+let chanChechpoint2 = true;
+// ============================================================
 
 function startFakeLoading() {
   console.log("start new checkpoint");
@@ -361,10 +356,10 @@ function startFakeLoading() {
       }, checkpointIntervals[currentCheckpoint]);
   }
 }
-inter = setInterval(() => {
-  console.log("Current Checkpoint is: " + currentCheckpoint+ " checkpointIntervals: " + checkpointIntervals[currentCheckpoint]);
-},2000);
 
+// ... (Rest der Datei bleibt gleich) ...
+
+// Slider Logic
 function sendTimeUpdate() {
     var sliderHour = document.getElementById("slider-hour");
     var sliderDay = document.getElementById("slider-day");
@@ -391,66 +386,51 @@ function sendTimeUpdate() {
 
 function sendToolCommand(commandName) {
     console.log("Sende Tool-Befehl: " + commandName);
-    
     if (window.pixelStreaming && typeof window.pixelStreaming.emitUIInteraction === "function") {
         window.pixelStreaming.emitUIInteraction(commandName);
     } else {
-        console.warn("Pixel Streaming nicht verbunden. Befehl konnte nicht gesendet werden:", commandName);
+        console.warn("Pixel Streaming nicht verbunden.");
     }
 }
 
 
 // ============================================================
-// FIX: Listener sofort registrieren, nicht warten! (POLLING)
+// UNREAL LISTENER (POLLING)
 // ============================================================
 function attachUnrealListener() {
     if (window.pixelStreaming) {
-        console.log("🎧 PixelStreaming gefunden! Registriere Listener sofort...");
+        console.log("🎧 PixelStreaming gefunden! Registriere Listener...");
 
-        if (window.pixelStreaming.hasAttachedResponseListener) {
-             console.log("⚠️ Listener war schon registriert.");
-             return;
-        }
+        if (window.pixelStreaming.hasAttachedResponseListener) return;
 
         window.pixelStreaming.addResponseEventListener("handle_responses", function(data) {
             console.log("📨 NACHRICHT VON UNREAL:", data);
 
             unlockUnrealTools(); 
 
-            // Wir versuchen herauszufinden, was 'data' ist
             var command = "";
             var jsonContent = null;
 
             try {
-                // Versuch 1: Ist es JSON? (z.B. Menüs)
                 jsonContent = JSON.parse(data);
-                
                 if (jsonContent && jsonContent.cmd) {
                     command = jsonContent.cmd;
                 }
             } catch (e) {
-                // Fehler beim Parsen -> Es ist kein JSON, sondern ein einfacher String!
-                // Das ist okay, dann ist der String selbst der Befehl.
                 command = data;
             }
 
             console.log("🔍 Interpretierter Befehl:", command);
 
-            // --- LOGIK VERTEILER ---
-
-            // 1. Menüs (Brauchen das ganze JSON Objekt)
             if (command === "Varianten" || command === "Materialien") {
-                console.log("Menü erkannt: " + jsonContent.titel);
                 handleUnrealMenuData(jsonContent);
             }
-            
-            // 2. Einfache Befehle (Home Button)
             else if (command === "ShowHome") {
-                console.log("🏠 Unreal sagt: Zeige Home Button");
-                $("#homePage").css("display", "block"); // oder 'flex'
+                // Nur den schwebenden Button steuern
+                $("#homePage").css("display", "block"); 
             }
             else if (command === "HideHome") {
-                console.log("🏠 Unreal sagt: Verstecke Home Button");
+                // Nur den schwebenden Button verstecken
                 $("#homePage").hide();
             }
         });
@@ -464,38 +444,22 @@ function attachUnrealListener() {
 
 attachUnrealListener();
 
-// ============================================================
-
-
 function unlockUnrealTools() {
     var sidebar = document.getElementById("ui-sidebar-right");
-    var btn = document.getElementById("toggle-right-btn");
-    
-    // ÄNDERUNG: Wir prüfen nur, öffnen aber NICHTS mehr hier.
     if (sidebar) {
-        console.log("🔓 Erste Nachricht erhalten: Tools sind im Hintergrund bereit (warten auf Start-Klick).");
-        
-        // Diese Zeilen sind auskommentiert, damit es NICHT sofort aufploppt:
-        // sidebar.style.setProperty("display", "flex", "important");
-        // if(btn) btn.style.setProperty("display", "flex", "important");
-        
+        // console.log("🔓 Nachricht erhalten: Tools bereit.");
         window.dispatchEvent(new Event('resize'));
     }
 }
 
-
 // ==========================================
 // DYNAMISCHE MENÜ LOGIK
 // ==========================================
-
 var receivedMenus = []; 
 var currentMenuIndex = 0; 
 
 function handleUnrealMenuData(json) {
-    var existingIndex = receivedMenus.findIndex(function(m) { 
-        return m.cmd === json.cmd; 
-    });
-
+    var existingIndex = receivedMenus.findIndex(function(m) { return m.cmd === json.cmd; });
     if (existingIndex >= 0) {
         receivedMenus[existingIndex] = json;
         currentMenuIndex = existingIndex;
@@ -503,13 +467,11 @@ function handleUnrealMenuData(json) {
         receivedMenus.push(json);
         currentMenuIndex = receivedMenus.length - 1;
     }
-
     renderDynamicMenu();
 }
 
 function renderDynamicMenu() {
     var container = $("#dynamic-menu-wrapper");
-    
     if (receivedMenus.length === 0) {
         container.hide();
         return;
@@ -524,18 +486,12 @@ function renderDynamicMenu() {
 
     if (menuData.buttons && Array.isArray(menuData.buttons)) {
         menuData.buttons.forEach(function(btn) {
-            
-            var label = btn.text;
-            if (label === "ButtonName") {
-                label = btn.cmd; 
-            }
-
+            var label = (btn.text === "ButtonName") ? btn.cmd : btn.text;
             var btnHtml = `
             <button onclick="sendCategoryCommand('${menuData.cmd}', '${btn.cmd}')" 
                     style="width: 100%; padding: 8px; cursor: pointer; border: 1px solid #ccc; background: white; border-radius: 5px; font-size: 12px; font-weight: 600; color: #444; margin-bottom:5px; display: flex; align-items: center; justify-content: center;">
                 ${label}
             </button>`;
-            
             list.append(btnHtml);
         });
     }
@@ -548,27 +504,16 @@ function renderDynamicMenu() {
 }
 
 $("#menu-prev-btn").click(function() {
-    if (currentMenuIndex > 0) {
-        currentMenuIndex--;
-    } else {
-        currentMenuIndex = receivedMenus.length - 1; 
-    }
+    currentMenuIndex = (currentMenuIndex > 0) ? currentMenuIndex - 1 : receivedMenus.length - 1;
     renderDynamicMenu();
 });
 
 $("#menu-next-btn").click(function() {
-    if (currentMenuIndex < receivedMenus.length - 1) {
-        currentMenuIndex++;
-    } else {
-        currentMenuIndex = 0; 
-    }
+    currentMenuIndex = (currentMenuIndex < receivedMenus.length - 1) ? currentMenuIndex + 1 : 0;
     renderDynamicMenu();
 });
 
-// ==========================================
 // MENÜ INIT
-// ==========================================
-
 var toolsMenuData = {
     cmd: "Tools",
     titel: "Tools",
@@ -587,19 +532,6 @@ var currentMenuIndex = 0;
 $(document).ready(function() {
     renderDynamicMenu();
 });
-
-function handleUnrealMenuData(json) {
-    var existingIndex = receivedMenus.findIndex(function(m) { 
-        return m.cmd === json.cmd; 
-    });
-
-    if (existingIndex >= 0) {
-        receivedMenus[existingIndex] = json;
-    } else {
-        receivedMenus.push(json);
-    }
-    renderDynamicMenu();
-}
 
 function sendCategoryCommand(category, command) {
     var fullCommand = category + ";" + command;
