@@ -362,6 +362,7 @@ let chanChechpoint2 = true;
 // ============================================================
 
 function startFakeLoading() {
+    if (currentWidth >= 100) return;
     console.log("Starte Loading Segment für Checkpoint Index: " + currentCheckpointIndex);
     
     // Alten Timer löschen, falls einer läuft
